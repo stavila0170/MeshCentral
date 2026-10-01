@@ -1010,7 +1010,7 @@
                         </tr>
                     </table><br />
                     <div id=p10html2></div>
-                        <div id=p10sessiontimeline></div>
+                    <div id=p10sessiontimeline></div>
                     <div id=p10html3></div>
                     <div id=p10html4></div>
                     <div id=p10html5></div>
@@ -9431,9 +9431,12 @@
 
                 // Request the power timeline
                 if ((powerTimelineNode != currentNode._id) && (powerTimelineReq != currentNode._id)) {
-                    QH('p10html2', ''); QH('p10sessiontimeline', '');
+                    QH('p10html2', '');
+                    QH('p10sessiontimeline', '');
                     powerTimelineReq = currentNode._id;
-                    meshserver.send({ action: 'powertimeline', nodeid: currentNode._id }); sessionTimelineReq = currentNode._id; meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id });
+                    meshserver.send({ action: 'powertimeline', nodeid: currentNode._id });
+                    sessionTimelineReq = currentNode._id;
+                    meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id });
                     meshserver.send({ action: 'lastconnect', nodeid: currentNode._id });
                     meshserver.send({ action: 'getsysinfo', nodeid: currentNode._id });
                     meshserver.send({ action: 'getnetworkinfo', nodeid: currentNode._id });
@@ -10319,7 +10322,9 @@
             if ((meshserver.State != 2) || (powerTimelineNode == null) || (powerTimelineUpdate == null) || (currentNode == null) || (currentNode.mtype == 3)) return;
             if ((powerTimelineNode == powerTimelineReq) && (currentNode._id == powerTimelineNode) && (powerTimelineUpdate < Date.now())) {
                 powerTimelineUpdate = null;
-                meshserver.send({ action: 'powertimeline', nodeid: currentNode._id }); sessionTimelineReq = currentNode._id; meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id });
+                meshserver.send({ action: 'powertimeline', nodeid: currentNode._id });
+                sessionTimelineReq = currentNode._id;
+                meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id });
                 meshserver.send({ action: 'lastconnect', nodeid: currentNode._id });
             }
         }
@@ -10416,12 +10421,12 @@
                     }
                 }
                 datavalue += '</div>';
-                x += '<tr class=' + (((count % 2) == 0) ? 'altBack' : '') + '><td><div>&nbsp;' + printDate(date) + '<div></div></div></td><td>' + datavalue + '</td></tr>';
+                x += '<tr><td><div>&nbsp;' + printDate(date) + '<div></div></div></td><td>' + datavalue + '</td></tr>';
                 count++;
                 date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
             }
 
-            QH('p10sessiontimeline', '<table cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:150px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
+            QH('p10sessiontimeline', '<table class="table table-striped align-middle text-center" cellpadding=2 cellspacing=0><thead><tr><th scope=col style=width:150px>' + "Day" + '</th><th scope=col>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
         }
 
         function sessionStateText(state) {

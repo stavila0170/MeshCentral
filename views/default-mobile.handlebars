@@ -4140,9 +4140,12 @@
 
                 // Request the power timeline
                 if ((powerTimelineNode != currentNode._id) && (powerTimelineReq != currentNode._id)) {
-                    QH('p10html2', ''); QH('p10sessiontimeline', '');
+                    QH('p10html2', '');
+                    QH('p10sessiontimeline', '');
                     powerTimelineReq = currentNode._id;
-                    meshserver.send({ action: 'powertimeline', nodeid: currentNode._id }); sessionTimelineReq = currentNode._id; meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id });
+                    meshserver.send({ action: 'powertimeline', nodeid: currentNode._id });
+                    sessionTimelineReq = currentNode._id;
+                    meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id });
                     meshserver.send({ action: 'lastconnect', nodeid: currentNode._id });
                     meshserver.send({ action: 'getsysinfo', nodeid: currentNode._id });
                     meshserver.send({ action: 'getnetworkinfo', nodeid: currentNode._id });
@@ -4466,7 +4469,9 @@
         // Look to see if we need to update the device timeline
         function updateDeviceTimeline() {
             if ((meshserver.State != 2) || (powerTimelineNode == null) || (powerTimelineUpdate == null) || (currentNode == null) || (currentNode.mtype == 3)) return;
-            if ((powerTimelineNode == powerTimelineReq) && (currentNode._id == powerTimelineNode) && (powerTimelineUpdate < Date.now())) { powerTimelineUpdate = null; meshserver.send({ action: 'powertimeline', nodeid: currentNode._id }); sessionTimelineReq = currentNode._id; meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id }); }
+            if ((powerTimelineNode == powerTimelineReq) && (currentNode._id == powerTimelineNode) && (powerTimelineUpdate < Date.now())) { powerTimelineUpdate = null; meshserver.send({ action: 'powertimeline', nodeid: currentNode._id });
+            sessionTimelineReq = currentNode._id;
+            meshserver.send({ action: 'sessiontimeline', nodeid: currentNode._id }); }
         }
 
         // Draw device power bars. The bars are 766px wide.

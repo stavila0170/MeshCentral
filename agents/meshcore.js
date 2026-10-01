@@ -816,8 +816,20 @@ function onUserSessionChanged(user, locked) {
         var ret = getDomainInfo();
         for (var i = 0; i < a.length; i++) {
             var un = a[i].Domain ? (a[i].Domain + '\\' + a[i].Username) : (a[i].Username);
-            if (user && locked && (JSON.stringify(a[i]) === JSON.stringify(user))) { if (meshCoreObj.lusers.indexOf(un) == -1) { meshCoreObj.lusers.push(un); } }
-            else if (user && !locked && (JSON.stringify(a[i]) === JSON.stringify(user))) { meshCoreObj.lusers.splice(meshCoreObj.lusers.indexOf(un), 1); }
+            var sessionMatch = false;
+            if (user) {
+                if ((a[i].SessionId != null) && (user.SessionId != null)) {
+                    sessionMatch = (a[i].SessionId == user.SessionId);
+                } else {
+                    sessionMatch = ((a[i].Username == user.Username) && (a[i].Domain == user.Domain));
+                }
+            }
+            if (user && locked && sessionMatch) {
+                if (meshCoreObj.lusers.indexOf(un) == -1) { meshCoreObj.lusers.push(un); }
+            } else if (user && !locked && sessionMatch) {
+                var lockedUserIndex = meshCoreObj.lusers.indexOf(un);
+                if (lockedUserIndex >= 0) { meshCoreObj.lusers.splice(lockedUserIndex, 1); }
+            }
             if (u.indexOf(un) == -1) { u.push(un); } // Only push users in the list once.
             if ((a[i].Domain != null && a[i].Domain == 'AzureAD') || getJoinState() == 1 ){
 				var userobj = getLogonCacheKeys();

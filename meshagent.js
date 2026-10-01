@@ -1920,6 +1920,19 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
     }
 
     // Change the current core information string and event it
+    // Return an aggregate interactive user session state for timeline tracking.
+    // If at least one logged-on session is unlocked, report unlocked. If users
+    // are logged on and all of them are locked, report locked.
+    function getUserSessionTimelineState(users, lockedUsers) {
+        if (!Array.isArray(users)) return null;
+        if (users.length == 0) return 'nouser';
+        if (!Array.isArray(lockedUsers)) return 'unlocked';
+        for (var i = 0; i < users.length; i++) {
+            if (lockedUsers.indexOf(users[i]) == -1) return 'unlocked';
+        }
+        return 'locked';
+    }
+
     function ChangeAgentCoreInfo(command) {
         if ((obj.agentInfo == null) || (obj.agentInfo.capabilities & 0x40)) return;
         if ((command == null) || (command == null)) return; // Safety, should never happen.
@@ -1938,6 +1951,22 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
             const device = nodes[0];
             if (device.agent) {
                 var changes = [], change = 0, log = 0;
+
+                // Store user session state transitions. The agent already reports
+                // logged-on users in "users" and locked users in "lusers".
+                const oldSessionState = getUserSessionTimelineState(device.users, device.lusers);
+                const newSessionState = getUserSessionTimelineState(command.users, command.lusers);
+                if ((newSessionState != null) && (newSessionState != oldSessionState)) {
+                    db.StoreEvent({
+                        etype: 'node',
+                        action: 'sessionstate',
+                        nodeid: obj.dbNodeKey,
+                        domain: domain.id,
+                        state: newSessionState,
+                        time: new Date(),
+                        ids: parent.CreateMeshDispatchTargets(device.meshid, [obj.dbNodeKey])
+                    });
+                }
 
                 // Check if anything changes
                 if (command.name && (typeof command.name == 'string') && (command.name != device.name)) { change = 1; log = 1; device.name = command.name; changes.push('name'); }

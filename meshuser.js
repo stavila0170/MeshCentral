@@ -5808,6 +5808,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
         'ping': serverCommandPing,
         'pong': serverCommandPong,
         'powertimeline': serverCommandPowerTimeline,
+        'sessiontimeline': serverCommandSessionTimeline,
         'print': serverCommandPrint,
         'removePhone': serverCommandRemovePhone,
         'removeMessaging': serverCommandRemoveMessaging,
@@ -6904,6 +6905,28 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
 
     function serverCommandPing(command) { try { ws.send('{"action":"pong"}'); } catch (ex) { } }
     function serverCommandPong(command) { } // NOP
+
+    function serverCommandSessionTimeline(command) {
+        // Get the node and the rights for this node
+        parent.GetNodeWithRights(domain, user, command.nodeid, function (node, rights, visible) {
+            if ((visible == false) || (node == null)) return;
+
+            // Session-state transitions are stored as node events by meshagent.js.
+            db.GetNodeEventsWithLimit(node._id, domain.id, 10000, 'sessionstate', function (err, docs) {
+                var timeline = [];
+                if ((err == null) && (docs != null)) {
+                    // GetNodeEventsWithLimit returns newest first. Send oldest first.
+                    for (var i = docs.length - 1; i >= 0; i--) {
+                        var doc = docs[i];
+                        if ((doc.state != 'locked') && (doc.state != 'unlocked') && (doc.state != 'nouser')) continue;
+                        var time = (doc.time instanceof Date) ? doc.time.getTime() : Date.parse(doc.time);
+                        if (isNaN(time) == false) { timeline.push([time, doc.state]); }
+                    }
+                }
+                obj.send({ action: 'sessiontimeline', nodeid: node._id, timeline: timeline, tag: command.tag });
+            });
+        });
+    }
 
     function serverCommandPowerTimeline(command) {
         // Get the node and the rights for this node

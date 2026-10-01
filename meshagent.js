@@ -1919,7 +1919,6 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
         parent.parent.DispatchEvent(parent.CreateMeshDispatchTargets(obj.dbMeshKey, [obj.dbNodeKey]), obj, event);
     }
 
-    // Change the current core information string and event it
     // Return an aggregate interactive user session state for timeline tracking.
     // If at least one logged-on session is unlocked, report unlocked. If users
     // are logged on and all of them are locked, report locked.
@@ -1933,6 +1932,7 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
         return 'locked';
     }
 
+    // Change the current core information string and event it
     function ChangeAgentCoreInfo(command) {
         if ((obj.agentInfo == null) || (obj.agentInfo.capabilities & 0x40)) return;
         if ((command == null) || (command == null)) return; // Safety, should never happen.

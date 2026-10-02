@@ -6918,9 +6918,11 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
                     // GetNodeEventsWithLimit returns newest first. Send oldest first.
                     for (var i = docs.length - 1; i >= 0; i--) {
                         var doc = docs[i];
-                        if ((doc.state != 'locked') && (doc.state != 'unlocked') && (doc.state != 'nouser')) continue;
+                        if ((doc.state != 'locked') && (doc.state != 'unlocked') && (doc.state != 'nouser') && (doc.state != 'unknown')) continue;
                         var time = (doc.time instanceof Date) ? doc.time.getTime() : Date.parse(doc.time);
-                        if (isNaN(time) == false) { timeline.push([time, doc.state]); }
+                        if (isNaN(time) == false) {
+                            if ((timeline.length == 0) || (timeline[timeline.length - 1][1] != doc.state)) { timeline.push([time, doc.state]); }
+                        }
                     }
                 }
                 obj.send({ action: 'sessiontimeline', nodeid: node._id, timeline: timeline, tag: command.tag });

@@ -797,6 +797,31 @@ var meshCoreObj = { action: 'coreinfo', value: (require('MeshAgent').coreHash ? 
 try { require('os').name().then(function (v) { meshCoreObj.osdesc = v; meshCoreObjChanged(); }); } catch (ex) { }
 
 // Setup logged in user monitoring (THIS IS BROKEN IN WIN7)
+var userSessionLockState = {};
+
+function getUserSessionLockKey(session) {
+    if (session == null) return null;
+    if (session.SessionId != null) return 's:' + session.SessionId;
+    if (session.Username == null) return null;
+    return 'u:' + (session.Domain ? (session.Domain + '\\') : '') + session.Username;
+}
+
+function getUserSessionAggregateState(activeSessions) {
+    if ((!Array.isArray(activeSessions)) || (activeSessions.length == 0)) return 'nouser';
+
+    var hasUnknown = false;
+    for (var i = 0; i < activeSessions.length; i++) {
+        var key = getUserSessionLockKey(activeSessions[i]);
+        if ((key == null) || (userSessionLockState[key] == null)) {
+            hasUnknown = true;
+        } else if (userSessionLockState[key] === false) {
+            return 'unlocked';
+        }
+    }
+
+    return hasUnknown ? 'unknown' : 'locked';
+}
+
 function onUserSessionChanged(user, locked) {
     userSession.enumerateUsers().then(function (users) {
         if (process.platform == 'linux') {
@@ -814,6 +839,7 @@ function onUserSessionChanged(user, locked) {
         if(meshCoreObj.lusers == null) { meshCoreObj.lusers = []; }
         if(meshCoreObj.upnusers == null) { meshCoreObj.upnusers = []; }
         var ret = getDomainInfo();
+        var activeSessionKeys = {};
         for (var i = 0; i < a.length; i++) {
             var un = a[i].Domain ? (a[i].Domain + '\\' + a[i].Username) : (a[i].Username);
             var sessionMatch = false;
@@ -823,6 +849,11 @@ function onUserSessionChanged(user, locked) {
                 } else {
                     sessionMatch = ((a[i].Username == user.Username) && (a[i].Domain == user.Domain));
                 }
+            }
+            var sessionStateKey = getUserSessionLockKey(a[i]);
+            if (sessionStateKey != null) {
+                activeSessionKeys[sessionStateKey] = true;
+                if (user && sessionMatch) { userSessionLockState[sessionStateKey] = locked; }
             }
             if (user && locked && sessionMatch) {
                 if (meshCoreObj.lusers.indexOf(un) == -1) { meshCoreObj.lusers.push(un); }
@@ -861,6 +892,10 @@ function onUserSessionChanged(user, locked) {
                 }
             }
         }
+        for (var sessionStateKey in userSessionLockState) {
+            if (activeSessionKeys[sessionStateKey] !== true) { delete userSessionLockState[sessionStateKey]; }
+        }
+        meshCoreObj.sessionstate = getUserSessionAggregateState(a);
         meshCoreObj.lusers = meshCoreObj.lusers;
         meshCoreObj.users = u;
         meshCoreObjChanged();

@@ -25,7 +25,7 @@ test('State transitions are dispatched once with readable messages and device-gr
         parent: { DispatchEvent: (ids, origin, event) => dispatched.push({ ids, origin, event }) }
     };
     const context = vm.createContext({ obj, parent, domain: { id: 'test' }, args: { wanonly: true },
-        db: { Get: (id, callback) => callback(null, [device]), StoreEvent: () => { throw Error('Direct double store'); } } });
+        db: { Get: (id, callback) => callback(null, [device]), GetNodeEventsWithLimit: (node, domain, limit, filter, callback) => callback(null, []), StoreEvent: () => { throw Error('Direct double store'); } } });
     vm.runInContext(functionSource(agent, 'isUserSessionTimelineState') + '\n' + functionSource(agent, 'ChangeAgentCoreInfo'), context);
     const expected = { locked: 'Locked', unlocked: 'Unlocked', nouser: 'No active user', unknown: 'Unknown' };
     for (const state of Object.keys(expected)) {
@@ -45,6 +45,85 @@ test('State transitions are dispatched once with readable messages and device-gr
         assert.equal(event.msg, 'User session state: ' + expected[event.state]);
         assert.equal(event.nolog, undefined);
     }
+});
+
+function sessionAgent(history, options = {}) {
+    const device = { agent: {}, meshid: 'mesh/test/group', ip: '127.0.0.1' };
+    const obj = { agentInfo: { capabilities: 0 }, dbNodeKey: 'node/test/device', dbMeshKey: device.meshid, remoteaddr: device.ip };
+    const dispatched = [], queries = [], timers = [], pending = [];
+    const parent = {
+        meshes: { [device.meshid]: { mtype: 2 } },
+        CreateMeshDispatchTargets: (mesh, nodes) => [mesh, ...nodes],
+        parent: { DispatchEvent: (ids, origin, event) => { dispatched.push(event); history.unshift(event); } }
+    };
+    const context = vm.createContext({ obj, parent, domain: { id: 'test' }, args: { wanonly: true },
+        setTimeout: callback => timers.push(callback),
+        db: {
+            Get: (id, callback) => callback(null, [device]),
+            GetNodeEventsWithLimit: (node, domain, limit, filter, callback) => {
+                queries.push([node, domain, limit, filter]);
+                const finish = () => callback(options.error || null, history.slice(0, 1));
+                if (options.delayed) pending.push(finish); else finish();
+            }
+        }
+    });
+    const agent = source('meshagent.js');
+    vm.runInContext(functionSource(agent, 'isUserSessionTimelineState') + '\n' + functionSource(agent, 'ChangeAgentCoreInfo'), context);
+    return { context, obj, dispatched, queries, timers, pending };
+}
+
+test('Reconnects restore every saved state once and retain genuine transitions', () => {
+    for (const state of ['locked', 'unlocked', 'nouser', 'unknown']) {
+        const agent = sessionAgent([{ state }]);
+        agent.context.ChangeAgentCoreInfo({ sessionstate: state });
+        agent.context.ChangeAgentCoreInfo({ sessionstate: state });
+        assert.equal(agent.dispatched.length, 0);
+        assert.deepEqual(agent.queries, [['node/test/device', 'test', 1, 'sessionstate']]);
+        const next = state === 'locked' ? 'unlocked' : 'locked';
+        agent.context.ChangeAgentCoreInfo({ sessionstate: next });
+        assert.equal(agent.dispatched.length, 1);
+        assert.equal(agent.dispatched[0].state, next);
+        assert.equal(agent.queries.length, 1);
+    }
+});
+
+test('A first report is recorded when history is missing, invalid, or unavailable', () => {
+    for (const [history, options] of [[[], {}], [[{ state: 'invalid' }], {}], [[], { error: new Error('Database read failed') }]]) {
+        const agent = sessionAgent(history, options);
+        agent.context.ChangeAgentCoreInfo({});
+        agent.context.ChangeAgentCoreInfo({ sessionstate: 'invalid' });
+        assert.equal(agent.queries.length, 0);
+        agent.context.ChangeAgentCoreInfo({ sessionstate: 'unlocked' });
+        agent.context.ChangeAgentCoreInfo({ sessionstate: 'unlocked' });
+        assert.equal(agent.dispatched.length, 1);
+        assert.equal(agent.queries.length, 1);
+    }
+});
+
+test('New connection objects and server restarts do not repeat the last stored state', () => {
+    const history = [];
+    const original = sessionAgent(history);
+    original.context.ChangeAgentCoreInfo({ sessionstate: 'unlocked' });
+    assert.equal(original.dispatched.length, 1);
+    for (let reconnect = 0; reconnect < 3; reconnect++) {
+        const fresh = sessionAgent(history);
+        fresh.context.ChangeAgentCoreInfo({ sessionstate: 'unlocked' });
+        assert.equal(fresh.dispatched.length, 0);
+    }
+    assert.equal(history.length, 1);
+});
+
+test('A pending history lookup serializes reports without losing a later transition', () => {
+    const agent = sessionAgent([{ state: 'locked' }], { delayed: true });
+    agent.context.ChangeAgentCoreInfo({ sessionstate: 'unlocked' });
+    assert.equal(agent.obj.deviceChanging, true);
+    agent.context.ChangeAgentCoreInfo({ sessionstate: 'locked' });
+    assert.equal(agent.timers.length, 1);
+    agent.pending.shift()();
+    agent.timers.shift()();
+    assert.deepEqual(agent.dispatched.map(event => event.state), ['unlocked', 'locked']);
+    assert.equal(agent.queries.length, 1);
+    assert.equal(agent.obj.deviceChanging, undefined);
 });
 
 test('Device and global session filters reach the database with existing rights checks', () => {

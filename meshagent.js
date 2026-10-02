@@ -1941,6 +1941,17 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
             if ((nodes == null) || (nodes.length != 1)) { delete obj.deviceChanging; return; }
             const device = nodes[0];
             if (device.agent) {
+                // Restore the last recorded state once per connection so reconnects
+                // and server restarts do not create duplicate session-state events.
+                if ((obj.lastSessionTimelineState === undefined) && isUserSessionTimelineState(command.sessionstate)) {
+                    db.GetNodeEventsWithLimit(obj.dbNodeKey, domain.id, 1, 'sessionstate', function (err, docs) {
+                        obj.lastSessionTimelineState = ((err == null) && (docs != null) && (docs.length > 0) && isUserSessionTimelineState(docs[0].state)) ? docs[0].state : null;
+                        delete obj.deviceChanging;
+                        ChangeAgentCoreInfo(command);
+                    });
+                    return;
+                }
+
                 var changes = [], change = 0, log = 0;
 
                 // Store the aggregate user-session state reported by MeshCore. Do not

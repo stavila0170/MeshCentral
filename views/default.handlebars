@@ -497,6 +497,7 @@
                                 <option notransval=1 value=batchupload>Batch Upload Logs</option>
                                 <option notransval=1 value=changenode>Change Node Logs</option>
                                 <option notransval=1 value=removenode>Remove Node Logs</option>
+                                <option notransval=1 value=sessionstate>User Session Logs</option>
                             </select>
                             Show
                             <select id=p3limitdropdown onchange=refreshEvents()>
@@ -1081,6 +1082,7 @@
                                 <option notransval=1 value=batchupload>Batch Upload Logs</option>
                                 <option notransval=1 value=changenode>Change Node Logs</option>
                                 <option notransval=1 value=removenode>Remove Node Logs</option>
+                                <option notransval=1 value=sessionstate>User Session Logs</option>
                             </select>
                             Show
                             <select id=p16limitdropdown onchange=refreshDeviceEvents()>
@@ -3145,6 +3147,7 @@
                     break;
                 }
                 case 'events': {
+                    for (var i in message.events) { localizeSessionStateEvent(message.events[i]); }
                     if ((message.nodeid != null) && (currentNode != null) && (message.nodeid == currentNode._id)) {
                         currentDeviceEvents = message.events;
                         mainUpdate(1024);
@@ -3390,6 +3393,7 @@
                     break;
                 }
                 case 'event': {
+                    localizeSessionStateEvent(message.event);
                     if (!message.event.nolog) {
                         if (currentNode && (message.event.nodeid == currentNode._id) && (currentDeviceEvents != null)) {
                             // If this event has a nodeid and we are looking at this node, update the log in real time.
@@ -9130,13 +9134,29 @@
                 date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
             }
 
-            QH('p10sessiontimeline', '<table cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:150px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
+            QH('p10sessiontimeline', sessionTimelineLegend() + '<table cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:150px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
+        }
+
+        function sessionTimelineLegend() {
+            var states = ['unlocked', 'locked', 'nouser'];
+            var x = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:9px">' + "Legend" + ':';
+            for (var i = 0; i < states.length; i++) {
+                x += '<span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="display:inline-block;width:14px;height:14px;background-color:' + sessionStateColor(states[i]) + '"></span>' + sessionStateText(states[i]) + '</span>';
+            }
+            return x + '<span>' + "Blank: Offline or unknown" + '</span></div>';
+        }
+
+        function localizeSessionStateEvent(event) {
+            if ((event != null) && (event.action == 'sessionstate') && (['locked', 'unlocked', 'nouser', 'unknown'].indexOf(event.state) >= 0)) {
+                event.msg = format("User session state: {0}", sessionStateText(event.state));
+            }
         }
 
         function sessionStateText(state) {
             if (state == 'locked') return "Locked";
             if (state == 'unlocked') return "Unlocked";
-            if (state == 'nouser') return "No user";
+            if (state == 'nouser') return "No active user";
+            if (state == 'unknown') return "Unknown";
             return state;
         }
 

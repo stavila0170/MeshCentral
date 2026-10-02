@@ -4565,13 +4565,23 @@
                 date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
             }
 
-            QH('p10sessiontimeline', '<table style="color:black;background-color:#EEE;border-color:#AAA;border-width:1px;border-style:solid;border-collapse:collapse;width:calc(100% - 18px);margin:9px" border=0 cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:90px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
+            QH('p10sessiontimeline', sessionTimelineLegend() + '<table style="color:black;background-color:#EEE;border-color:#AAA;border-width:1px;border-style:solid;border-collapse:collapse;width:calc(100% - 18px);margin:9px" border=0 cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:90px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
+        }
+
+        function sessionTimelineLegend() {
+            var states = ['unlocked', 'locked', 'nouser'];
+            var x = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:9px">' + "Legend" + ':';
+            for (var i = 0; i < states.length; i++) {
+                x += '<span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="display:inline-block;width:14px;height:14px;background-color:' + sessionStateColor(states[i]) + '"></span>' + sessionStateText(states[i]) + '</span>';
+            }
+            return x + '<span>' + "Blank: Offline or unknown" + '</span></div>';
         }
 
         function sessionStateText(state) {
             if (state == 'locked') return "Locked";
             if (state == 'unlocked') return "Unlocked";
-            if (state == 'nouser') return "No user";
+            if (state == 'nouser') return "No active user";
+            if (state == 'unknown') return "Unknown";
             return state;
         }
 

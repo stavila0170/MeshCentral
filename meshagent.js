@@ -1948,15 +1948,17 @@ module.exports.CreateMeshAgent = function (parent, db, ws, req, args, domain) {
                 // Windows may already be locked, but no lock event has been observed yet.
                 const newSessionState = command.sessionstate;
                 if (isUserSessionTimelineState(newSessionState) && (newSessionState != obj.lastSessionTimelineState)) {
-                    db.StoreEvent({
+                    const sessionStateMessages = { locked: 'Locked', unlocked: 'Unlocked', nouser: 'No active user', unknown: 'Unknown' };
+                    const sessionEvent = {
                         etype: 'node',
                         action: 'sessionstate',
+                        meshid: device.meshid,
                         nodeid: obj.dbNodeKey,
                         domain: domain.id,
                         state: newSessionState,
-                        time: new Date(),
-                        ids: parent.CreateMeshDispatchTargets(device.meshid, [obj.dbNodeKey])
-                    });
+                        msg: 'User session state: ' + sessionStateMessages[newSessionState]
+                    };
+                    parent.parent.DispatchEvent(parent.CreateMeshDispatchTargets(device.meshid, [obj.dbNodeKey]), obj, sessionEvent);
                     obj.lastSessionTimelineState = newSessionState;
                 }
 

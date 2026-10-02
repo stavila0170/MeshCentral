@@ -1106,7 +1106,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
 
                         var actionfilter = null;
                         if (command.filter != null) {
-                            if (['agentlog','batchupload','changenode','manual','relaylog','removenode','runcommands'].includes(command.filter)) actionfilter = command.filter;
+                            if (['agentlog','batchupload','changenode','manual','relaylog','removenode','runcommands','sessionstate'].includes(command.filter)) actionfilter = command.filter;
                         }
 
                         if ((command.limit == null) || (typeof command.limit != 'number')) {
@@ -1138,7 +1138,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
 
                             var filter = null;
                             if (command.filter != null) {
-                                if (['agentlog','batchupload','changenode','manual','relaylog','removenode','runcommands'].includes(command.filter)) filter = command.filter;
+                                if (['agentlog','batchupload','changenode','manual','relaylog','removenode','runcommands','sessionstate'].includes(command.filter)) filter = command.filter;
                             }
 
                             if (((rights & MESHRIGHT_LIMITEVENTS) != 0) && (rights != MESHRIGHT_ADMIN)) {
@@ -1171,7 +1171,7 @@ module.exports.CreateMeshUser = function (parent, db, ws, req, args, domain, use
 
                         var actionfilter = null;
                         if (command.filter != null) {
-                            if (['agentlog','batchupload','changenode','manual','relaylog','removenode','runcommands'].includes(command.filter)) actionfilter = command.filter;
+                            if (['agentlog','batchupload','changenode','manual','relaylog','removenode','runcommands','sessionstate'].includes(command.filter)) actionfilter = command.filter;
                         }
 
                         if ((command.limit == null) || (typeof command.limit != 'number')) {

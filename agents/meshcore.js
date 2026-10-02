@@ -798,6 +798,35 @@ try { require('os').name().then(function (v) { meshCoreObj.osdesc = v; meshCoreO
 
 // Setup logged in user monitoring (THIS IS BROKEN IN WIN7)
 var userSessionLockState = {};
+var userSessionLockFlagsReversed = null;
+
+function getWindowsUserSessionLockState(session) {
+    if ((process.platform != 'win32') || (session.SessionId == null) || (typeof userSession.getRawSessionAttribute != 'function')) return null;
+    try {
+        // WTSINFOEXW has an aligned Data union at offset 8 on both Windows
+        // architectures. Its level-1 SessionFlags field is at offset 16.
+        var info = userSession.getRawSessionAttribute(session.SessionId, 25); // WTSSessionInfoEx
+        if ((info.length < 20) || (info.readUInt32LE(0) != 1) || (info.readUInt32LE(8) != session.SessionId)) return null;
+        var flags = info.readUInt32LE(16);
+        if ((flags != 0) && (flags != 1)) return null;
+
+        if (userSessionLockFlagsReversed == null) {
+            // Windows 7 and Server 2008 R2 reverse the documented lock flags.
+            // RtlGetVersion avoids the version reported by compatibility mode.
+            var marshal = require('_GenericMarshal');
+            var ntdll = marshal.CreateNativeProxy('ntdll.dll');
+            ntdll.CreateMethod('RtlGetVersion');
+            var version = marshal.CreateVariable(276); // RTL_OSVERSIONINFOW
+            version.toBuffer().writeUInt32LE(276, 0);
+            if (ntdll.RtlGetVersion(version).Val != 0) return null;
+            userSessionLockFlagsReversed = ((version.toBuffer().readUInt32LE(4) == 6) && (version.toBuffer().readUInt32LE(8) == 1));
+        }
+        return userSessionLockFlagsReversed ? (flags == 1) : (flags == 0);
+    } catch (ex) {
+        // Failed or unsupported native queries must not invent an unlock.
+        return null;
+    }
+}
 
 function getUserSessionLockKey(session) {
     if (session == null) return null;
@@ -854,6 +883,10 @@ function onUserSessionChanged(user, locked) {
             if (sessionStateKey != null) {
                 activeSessionKeys[sessionStateKey] = true;
                 if (user && sessionMatch) { userSessionLockState[sessionStateKey] = locked; }
+                else if (userSessionLockState[sessionStateKey] == null) {
+                    var initialLockState = getWindowsUserSessionLockState(a[i]);
+                    if (initialLockState != null) { userSessionLockState[sessionStateKey] = initialLockState; }
+                }
             }
             if (user && locked && sessionMatch) {
                 if (meshCoreObj.lusers.indexOf(un) == -1) { meshCoreObj.lusers.push(un); }

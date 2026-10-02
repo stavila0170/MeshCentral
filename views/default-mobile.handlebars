@@ -4565,14 +4565,14 @@
                 date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
             }
 
-            QH('p10sessiontimeline', sessionTimelineLegend() + '<table style="color:black;background-color:#EEE;border-color:#AAA;border-width:1px;border-style:solid;border-collapse:collapse;width:calc(100% - 18px);margin:9px" border=0 cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:90px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody></table>');
+            QH('p10sessiontimeline', '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(128,128,128,0.35)"><table style="color:black;background-color:#EEE;border-color:#AAA;border-width:1px;border-style:solid;border-collapse:collapse;width:calc(100% - 18px);margin:9px" border=0 cellpadding=2 cellspacing=0><thead><tr><th scope=col style=text-align:center;width:90px>' + "Day" + '</th><th scope=col style=text-align:center>' + "7 Day User Session State" + '</th></tr></thead><tbody>' + x + '</tbody><tfoot><tr><td aria-hidden="true" style="border:0"></td><td style="border:0;text-align:center;padding:4px 2px">' + sessionTimelineLegend() + '</td></tr></tfoot></table></div>');
         }
 
         function sessionTimelineLegend() {
             var states = ['unlocked', 'locked', 'nouser'];
-            var x = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:9px">' + "Legend" + ':';
+            var x = '<div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 12px;margin-top:4px;font-size:11px;font-weight:normal;line-height:1.35">';
             for (var i = 0; i < states.length; i++) {
-                x += '<span style="display:inline-flex;align-items:center;gap:6px"><span aria-hidden="true" style="display:inline-block;width:14px;height:14px;background-color:' + sessionStateColor(states[i]) + '"></span>' + sessionStateText(states[i]) + '</span>';
+                x += '<span style="display:inline-flex;align-items:center;gap:4px"><span aria-hidden="true" style="display:inline-block;width:9px;height:9px;background-color:' + sessionStateColor(states[i]) + '"></span>' + sessionStateText(states[i]) + '</span>';
             }
             return x + '<span>' + "Blank: Offline or unknown" + '</span></div>';
         }
